@@ -13,5 +13,6 @@ urlpatterns = [
 	path('', include(router.urls)),
 	path('groups/manager/users', views.Managers.as_view()),
 	path('groups/manager/users/<int:pk>', views.ManagerDelete.as_view()),
+    path('groups/delivery-crew/users', views.DeliveryCrews.as_view()),
+	path('groups/delivery-crew/users/<int:pk>', views.DeliveryCrewDelete.as_view()),
 ]
-
