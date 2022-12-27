@@ -11,5 +11,7 @@ app_name = 'LittleLemonAPI'
 
 urlpatterns = [
 	path('', include(router.urls)),
+	path('groups/manager/users', views.Managers.as_view()),
+	path('groups/manager/users/<int:pk>', views.ManagerDelete.as_view()),
 ]
 
