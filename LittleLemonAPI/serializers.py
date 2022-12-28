@@ -16,4 +16,14 @@ class MenuItemSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        exclude = ('password', 'user_permissions')
+        exclude = ['password', 'user_permissions']
+
+
+class CartSerializer(serializers.ModelSerializer):
+    menuitem = serializers.StringRelatedField()
+    menuitem_id = serializers.IntegerField(write_only=True)
+    
+    class Meta:
+        model = models.Cart
+        fields = ['id', 'user', 'quantity', 'unit_price', 'price', 'menuitem', 'menuitem_id']
+        read_only_fields = ['user', 'menuitem', 'unit_price', 'price']
