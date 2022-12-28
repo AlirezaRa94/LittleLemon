@@ -8,4 +8,4 @@ class IsManager(BasePermission):
 
 class ReadOnly(BasePermission):
     def has_permission(self, request, view):
-        return request.method in SAFE_METHODS
+        return request.user.is_authenticated and request.method in SAFE_METHODS
