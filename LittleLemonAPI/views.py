@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from LittleLemonAPI import serializers, models
-from LittleLemonAPI.permissions import IsManager, ReadOnly
+from LittleLemonAPI.permissions import IsManager, IsDeliveryCrew, IsCustomer, ReadOnly
 
 
 class MenuItemViewSet(ModelViewSet):
@@ -114,3 +114,53 @@ class Cart(generics.ListCreateAPIView, generics.DestroyAPIView):
             {'message': f'Cart successfully emptied for {request.user.username}'},
             status.HTTP_200_OK
         )
+
+class ListCreateOrders(generics.ListCreateAPIView):
+    serializer_class = serializers.OrdersSerializer
+
+    def get_permissions(self):
+        permission_classes = [IsAuthenticated]
+        if self.request.method == 'POST':
+            permission_classes = [IsCustomer]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = models.Order.objects.all()
+        if IsManager().has_permission(self.request, self):
+            return queryset
+        elif IsDeliveryCrew().has_permission(self.request, self):
+            return queryset.filter(delivery_crew=user)
+        else:
+            return queryset.filter(user=user)
+
+    def create(self, request, *args, **kwargs):
+        cart_items = models.Cart.objects.filter(user=request.user)
+        if cart_items.exists():
+            serialized_data = self.serializer_class(data=request.data)
+            serialized_data.is_valid(raise_exception=True)
+            serialized_data.save(user=self.request.user, total=0)
+            order = models.Order.objects.get(id=serialized_data.data['id'])
+            total = 0
+            for item in cart_items:
+                order_item = models.OrderItem(
+                    order=order,
+                    menuitem=item.menuitem,
+                    quantity=item.quantity,
+                    unit_price=item.unit_price,
+                    price=item.price
+                )
+                order_item.save()
+                total += item.price
+            cart_items.delete()
+            order.total = total
+            order.save()
+            return Response(
+                {'message': f'Order successfully added'},
+                status.HTTP_201_CREATED
+            )
+
+        return Response(
+                {'message': f'There is not item in the cart!'},
+                status.HTTP_400_BAD_REQUEST
+            )

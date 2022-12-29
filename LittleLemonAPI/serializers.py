@@ -27,3 +27,10 @@ class CartSerializer(serializers.ModelSerializer):
         model = models.Cart
         fields = ['id', 'user', 'quantity', 'unit_price', 'price', 'menuitem', 'menuitem_id']
         read_only_fields = ['user', 'menuitem', 'unit_price', 'price']
+
+
+class OrdersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Order
+        fields = '__all__'
+        read_only_fields = ['total', 'user', 'date']
