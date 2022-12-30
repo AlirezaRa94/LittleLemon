@@ -164,3 +164,41 @@ class ListCreateOrders(generics.ListCreateAPIView):
                 {'message': f'There is not item in the cart!'},
                 status.HTTP_400_BAD_REQUEST
             )
+
+
+class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = serializers.OrdersSerializer
+    queryset = models.Order.objects.all()
+    
+    def get_permissions(self):
+        permission_classes = [IsAuthenticated]
+        if self.request.method in ['PUT', 'DELETE']:
+            permission_classes = [IsManager]
+        elif self.request.method == 'PATCH':
+            permission_classes = [IsManager|IsDeliveryCrew]
+        return [permission() for permission in permission_classes]
+    
+    def retrieve(self, request, *args, **kwargs):
+        if IsCustomer().has_permission(request, self):
+            item = self.queryset.get(pk=kwargs['pk'])
+            if request.user == item.user:
+                serialized_item = self.get_serializer(item)
+                return Response(
+                    serialized_item.data,
+                    status.HTTP_200_OK
+                )
+            return Response(
+                {'message': 'You do not have permission to see this page!'},
+                status.HTTP_403_FORBIDDEN
+            )
+        return super().retrieve(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        if not IsManager().has_permission(request, self):
+            params = list(request.data.keys())
+            if len(params) > 0 and params != ['status']:
+                return Response(
+                    {'message': 'You do not have permission to perform this action!'},
+                    status.HTTP_403_FORBIDDEN
+                )
+        return super().partial_update(request, *args, **kwargs)
