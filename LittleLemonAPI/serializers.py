@@ -13,6 +13,13 @@ class MenuItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'price', 'featured', 'category', 'category_id']
 
 
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Category
+        fields = '__all__'
+        read_only_fields = ['id']
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -20,17 +27,14 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CartSerializer(serializers.ModelSerializer):
-    menuitem = serializers.StringRelatedField()
-    menuitem_id = serializers.IntegerField(write_only=True)
-    
     class Meta:
         model = models.Cart
-        fields = ['id', 'user', 'quantity', 'unit_price', 'price', 'menuitem', 'menuitem_id']
-        read_only_fields = ['user', 'menuitem', 'unit_price', 'price']
+        fields = ['id', 'user', 'quantity', 'unit_price', 'price', 'menuitem']
+        read_only_fields = ['user', 'unit_price', 'price']
 
 
 class OrdersSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Order
         fields = '__all__'
-        read_only_fields = ['total', 'user', 'date']
+        read_only_fields = ['total', 'user']

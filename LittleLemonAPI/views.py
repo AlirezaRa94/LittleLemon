@@ -6,7 +6,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from rest_framework.filters import OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 
 from LittleLemonAPI import serializers, models
 from LittleLemonAPI.permissions import IsManager, IsDeliveryCrew, IsCustomer, ReadOnly
@@ -16,9 +16,16 @@ class MenuItemViewSet(ModelViewSet):
     permission_classes = [IsAdminUser|IsManager|ReadOnly]
     serializer_class = serializers.MenuItemSerializer
     queryset = models.MenuItem.objects.all()
-    filter_backends = [filters.DjangoFilterBackend, OrderingFilter]
+    filter_backends = [filters.DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ['category', 'price', 'featured', 'title']
     ordering_fields = ['id', 'price', 'title']
+    search_fields = ['category__title', 'title']
+
+
+class CategoryViewSet(ModelViewSet):
+    permission_classes = [IsAdminUser|IsManager|ReadOnly]
+    serializer_class = serializers.CategorySerializer
+    queryset = models.Category.objects.all()
 
 
 class Managers(generics.ListCreateAPIView):
@@ -58,7 +65,7 @@ class ManagerDelete(generics.DestroyAPIView):
 
 class DeliveryCrews(generics.ListCreateAPIView):
     queryset = Group.objects.get(name='Delivery Crew').user_set.all()
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser|IsManager]
     serializer_class = serializers.UserSerializer
 
     def create(self, request, *args, **kwargs):
@@ -79,7 +86,7 @@ class DeliveryCrews(generics.ListCreateAPIView):
 
 
 class DeliveryCrewDelete(generics.DestroyAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser|IsManager]
     
     def delete(self, request, *args, **kwargs):
         user = get_object_or_404(User, pk=kwargs["pk"])
@@ -101,9 +108,8 @@ class Cart(generics.ListCreateAPIView, generics.DestroyAPIView):
     def create(self, request, *args, **kwargs):
         serialized_data = self.get_serializer(data=request.data)
         serialized_data.is_valid(raise_exception=True)
-        menuitem_id = serialized_data.validated_data['menuitem_id']
+        menuitem = serialized_data.validated_data['menuitem']
         quantity = serialized_data.validated_data['quantity']
-        menuitem = models.MenuItem.objects.get(id=menuitem_id)
         serialized_data.validated_data['menuitem'] = menuitem
         serialized_data.validated_data['unit_price'] = menuitem.price
         serialized_data.validated_data['price'] = quantity * menuitem.price
@@ -119,6 +125,7 @@ class Cart(generics.ListCreateAPIView, generics.DestroyAPIView):
             {'message': f'Cart successfully emptied for {request.user.username}'},
             status.HTTP_200_OK
         )
+
 
 class ListCreateOrders(generics.ListCreateAPIView):
     serializer_class = serializers.OrdersSerializer
@@ -202,11 +209,26 @@ class OrderDetail(generics.RetrieveUpdateDestroyAPIView):
         return super().retrieve(request, *args, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
-        if not IsManager().has_permission(request, self):
+        if IsDeliveryCrew().has_permission(request, self):
             params = list(request.data.keys())
             if len(params) > 0 and params != ['status']:
                 return Response(
                     {'message': 'You do not have permission to perform this action!'},
                     status.HTTP_403_FORBIDDEN
                 )
+        if IsManager().has_permission(request, self):
+            if request.data.get('delivery_crew'):
+                delivery_crew_id = request.data['delivery_crew']
+                try:
+                    user = User.objects.get(id=delivery_crew_id)
+                except User.DoesNotExist:
+                    return Response(
+                        {'message': f'The selected user does not exist'},
+                        status.HTTP_400_BAD_REQUEST
+                    )
+                if not user.groups.filter(name='Delivery Crew').exists():
+                    return Response(
+                        {'message': f'The selected user is not a delivery crew'},
+                        status.HTTP_400_BAD_REQUEST
+                    )
         return super().partial_update(request, *args, **kwargs)

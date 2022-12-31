@@ -4,8 +4,9 @@ from rest_framework.routers import DefaultRouter
 from LittleLemonAPI import views
 
 
-router = DefaultRouter()
+router = DefaultRouter(trailing_slash=False)
 router.register('menu-items', views.MenuItemViewSet)
+router.register('categories', views.CategoryViewSet)
 
 app_name = 'LittleLemonAPI'
 
