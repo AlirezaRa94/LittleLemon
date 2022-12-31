@@ -1,9 +1,9 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAdminUser
 
 
 class IsManager(BasePermission):
     def has_permission(self, request, view):
-        return request.user.groups.filter(name='Manager').exists()
+        return IsAdminUser().has_permission(request, view) or request.user.groups.filter(name='Manager').exists()
 
 
 class IsDeliveryCrew(BasePermission):
