@@ -1,10 +1,12 @@
 from django.contrib.auth.models import User, Group
 from django.shortcuts import get_object_or_404
+from django_filters import rest_framework as filters
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.filters import OrderingFilter
 
 from LittleLemonAPI import serializers, models
 from LittleLemonAPI.permissions import IsManager, IsDeliveryCrew, IsCustomer, ReadOnly
@@ -14,6 +16,9 @@ class MenuItemViewSet(ModelViewSet):
     permission_classes = [IsManager|ReadOnly]
     serializer_class = serializers.MenuItemSerializer
     queryset = models.MenuItem.objects.all()
+    filter_backends = [filters.DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['category', 'price', 'featured', 'title']
+    ordering_fields = ['id', 'price', 'title']
 
 
 class Managers(generics.ListCreateAPIView):
@@ -117,6 +122,9 @@ class Cart(generics.ListCreateAPIView, generics.DestroyAPIView):
 
 class ListCreateOrders(generics.ListCreateAPIView):
     serializer_class = serializers.OrdersSerializer
+    filter_backends = [filters.DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['date', 'total', 'status']
+    ordering_fields = ['id', 'date', 'total']
 
     def get_permissions(self):
         permission_classes = [IsAuthenticated]
