@@ -5,7 +5,7 @@ from django_filters import rest_framework as filters
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.filters import OrderingFilter
 
 from LittleLemonAPI import serializers, models
@@ -13,7 +13,7 @@ from LittleLemonAPI.permissions import IsManager, IsDeliveryCrew, IsCustomer, Re
 
 
 class MenuItemViewSet(ModelViewSet):
-    permission_classes = [IsManager|ReadOnly]
+    permission_classes = [IsAdminUser|IsManager|ReadOnly]
     serializer_class = serializers.MenuItemSerializer
     queryset = models.MenuItem.objects.all()
     filter_backends = [filters.DjangoFilterBackend, OrderingFilter]
@@ -23,7 +23,7 @@ class MenuItemViewSet(ModelViewSet):
 
 class Managers(generics.ListCreateAPIView):
     queryset = Group.objects.get(name='Manager').user_set.all()
-    permission_classes = [IsManager]
+    permission_classes = [IsAdminUser]
     serializer_class = serializers.UserSerializer
 
     def create(self, request, *args, **kwargs):
@@ -44,7 +44,7 @@ class Managers(generics.ListCreateAPIView):
 
 
 class ManagerDelete(generics.DestroyAPIView):
-    permission_classes = [IsManager]
+    permission_classes = [IsAdminUser]
     
     def delete(self, request, *args, **kwargs):
         user = get_object_or_404(User, pk=kwargs["pk"])
@@ -58,7 +58,7 @@ class ManagerDelete(generics.DestroyAPIView):
 
 class DeliveryCrews(generics.ListCreateAPIView):
     queryset = Group.objects.get(name='Delivery Crew').user_set.all()
-    permission_classes = [IsManager]
+    permission_classes = [IsAdminUser]
     serializer_class = serializers.UserSerializer
 
     def create(self, request, *args, **kwargs):
@@ -73,13 +73,13 @@ class DeliveryCrews(generics.ListCreateAPIView):
             )
 
         return Response(
-            {'message': 'username is required'},
+            {'message': 'username field is required'},
             status.HTTP_400_BAD_REQUEST
         )
 
 
 class DeliveryCrewDelete(generics.DestroyAPIView):
-    permission_classes = [IsManager]
+    permission_classes = [IsAdminUser]
     
     def delete(self, request, *args, **kwargs):
         user = get_object_or_404(User, pk=kwargs["pk"])
